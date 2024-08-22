@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     id("com.google.dagger.hilt.android")
+    id("com.google.gms.google-services")
     id ("kotlin-kapt")
 }
 
@@ -11,10 +12,10 @@ android {
 
     defaultConfig {
         applicationId = "com.secure.app"
-        minSdk = 26
+        minSdk = 28
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -26,7 +27,8 @@ android {
     buildTypes {
         release {
           //  shrinkResources = true
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -97,6 +99,7 @@ dependencies {
     //hilt
     implementation (libs.hilt.android)
     kapt (libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     //Splash
     implementation (libs.androidx.core.splashscreen)
@@ -110,5 +113,13 @@ dependencies {
     //Glide
     implementation (libs.glide)
 
+
+    //firebase
+    //Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.database)
+    implementation(libs.firebase.auth)
+    implementation(libs.play.services.auth)
 
 }

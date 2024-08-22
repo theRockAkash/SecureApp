@@ -22,16 +22,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.ktx.Firebase
 import com.secure.app.retrofit.UiState
 import com.secure.app.R
+import com.secure.app.screens.login.LoginScreen
 import com.secure.app.ui.theme.StarWarsTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -48,8 +55,19 @@ class MainActivity : ComponentActivity() {
             StarWarsTheme {
                 Scaffold(modifier = Modifier.fillMaxSize(),
                     topBar = { TopAppBar(title = { Text("Secure App") }) }) { innerPadding ->
+                    var state by remember {
+                        mutableStateOf(Firebase.auth.currentUser!=null)
+                    }
+                    LaunchedEffect(key1 = Unit) {
+                        viewModel.setAuthListener {
+                            state=it
+                        }
+                    }
+                    if(state )
                     HomeScreen(paddingValues = innerPadding, viewModel = viewModel)
-
+                    else LoginScreen {
+                        state =true
+                    }
                 }
             }
         }

@@ -8,6 +8,12 @@ import android.net.NetworkRequest
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import com.secure.app.retrofit.UiState
 import com.secure.app.retrofit.Api
 import com.secure.app.retrofit.getErrorMessage
@@ -52,7 +58,11 @@ class HomeViewModel @Inject constructor(
         checkNetworkConnection()
 
     }
-
+    fun setAuthListener(callback: (Boolean) -> Unit) {
+        FirebaseAuth.getInstance().addAuthStateListener {
+            callback(it.currentUser!=null)
+        }
+    }
     private fun checkNetworkConnection() {
         isVpnActiveFlow = callbackFlow {
             val connectivityManager =
@@ -85,20 +95,36 @@ class HomeViewModel @Inject constructor(
     }
 
     fun sendDataToServer() {
-        viewModelScope.launch(Dispatchers.IO) {
-            _serverResponseState.value = UiState.Loading()
-            val ip = networkManager.getLocalIpAddress()
-            val data = AESEncryptionHelper.encrypt(Data(ip = ip, key = KeyUtils.secretKey()))
-            val map = HashMap<String,String>()
-            map["key_Ip"]=data
-            val res = api.sendSecureData(map)
-            if (res.isSuccessful && res.body() != null) {
-                _serverResponseState.value = UiState.Success(res.body()!!)
-            } else {
-                _serverResponseState.value = UiState.Error("Error : ${res.errorBody().getErrorMessage()}")
+
+        _serverResponseState.value = UiState.Loading()
+        FirebaseDatabase.getInstance().reference.child("key").addListenerForSingleValueEvent(object :ValueEventListener{
+            override fun onDataChange(snapshot: DataSnapshot) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    _serverResponseState.value = UiState.Loading()
+                    val ip = networkManager.getLocalIpAddress()
+                    val data = AESEncryptionHelper.encrypt(
+                        data = Data(ip = ip, key = snapshot.value.toString()),
+                        context = context,
+                        aesKey = snapshot.value.toString()
+                    )
+                    val map = HashMap<String,String>()
+                    map["key_Ip"]=data
+                    val res = api.sendSecureData(map)
+                    if (res.isSuccessful && res.body() != null) {
+                        _serverResponseState.value = UiState.Success(res.body()!!)
+                    } else {
+                        _serverResponseState.value = UiState.Error("Error : ${res.errorBody().getErrorMessage()}")
+                    }
+
+                }
             }
 
-        }
+            override fun onCancelled(error: DatabaseError) {
+                _serverResponseState.value = UiState.Error("Error : ${error.message}")
+            }
+
+        })
+
     }
 
     fun setDeveloperModeEnabled(enabled: Boolean) {
